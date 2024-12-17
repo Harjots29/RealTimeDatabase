@@ -12,6 +12,11 @@ import android.view.WindowManager
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.google.firebase.database.ChildEventListener
+import com.google.firebase.database.DataSnapshot
+import com.google.firebase.database.DatabaseError
+import com.google.firebase.database.DatabaseReference
+import com.google.firebase.database.FirebaseDatabase
 import com.harjot.realtimedatabase.databinding.CustomDialogLayoutBinding
 import com.harjot.realtimedatabase.databinding.FragmentStudentBinding
 
@@ -28,6 +33,7 @@ private const val ARG_PARAM2 = "param2"
 class StudentFragment : Fragment(),StudentInterface {
     lateinit var binding: FragmentStudentBinding
     lateinit var mainActivity: MainActivity
+    var dbReference: DatabaseReference = FirebaseDatabase.getInstance().reference  //database declaration and initialization
     var arrayList = ArrayList<StudentInfo>()
     var studentAdapter = StudentAdapter(arrayList,this)
     // TODO: Rename and change types of parameters
@@ -41,6 +47,46 @@ class StudentFragment : Fragment(),StudentInterface {
             param1 = it.getString(ARG_PARAM1)
             param2 = it.getString(ARG_PARAM2)
         }
+        dbReference.addChildEventListener(object: ChildEventListener{
+            override fun onChildAdded(snapshot: DataSnapshot, previousChildName: String?) {
+                val studentInfo: StudentInfo? = snapshot.getValue(StudentInfo::class.java)
+                studentInfo?.id = snapshot.key.toString()
+                if (studentInfo!=null){
+                    arrayList.add(studentInfo)
+                    studentAdapter.notifyDataSetChanged()
+                }
+            }
+
+            override fun onChildChanged(snapshot: DataSnapshot, previousChildName: String?) {
+                val studentInfo: StudentInfo? = snapshot.getValue(StudentInfo::class.java)
+                studentInfo?.id = snapshot.key.toString()
+                if (studentInfo!=null){
+                    arrayList.forEachIndexed { index, studentInfoData ->
+                        if (studentInfoData.id == studentInfo.id){
+                            arrayList[index] = studentInfo
+                            return@forEachIndexed
+                        }
+                    }
+                    studentAdapter.notifyDataSetChanged()
+                }
+            }
+
+            override fun onChildRemoved(snapshot: DataSnapshot) {
+                val studentInfo: StudentInfo? = snapshot.getValue(StudentInfo::class.java)
+                studentInfo?.id = snapshot.key.toString()
+                if(studentInfo!=null){
+                    arrayList.remove(studentInfo)
+                    studentAdapter.notifyDataSetChanged()
+                }
+            }
+
+            override fun onChildMoved(snapshot: DataSnapshot, previousChildName: String?) {
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+            }
+
+        })
     }
 
     override fun onCreateView(
@@ -84,6 +130,31 @@ class StudentFragment : Fragment(),StudentInterface {
     override fun listClick(position: Int) {
         dialog(position)
     }
+
+    override fun onDeleteClick(studentInfo: StudentInfo, position: Int) {
+        var alertDialog = AlertDialog.Builder(mainActivity)
+        alertDialog.setTitle("Delete Item")
+        alertDialog.setMessage("Do you want to delete the item?")
+        alertDialog.setCancelable(false)
+        alertDialog.setNegativeButton("No") { _, _ ->
+            alertDialog.setCancelable(true)
+        }
+        alertDialog.setPositiveButton("Yes") { _, _ ->
+            if (arrayList.size == 0){
+                Toast.makeText(mainActivity, "List Is Empty", Toast.LENGTH_SHORT).show()
+            }
+            else {
+                Toast.makeText(
+                    mainActivity,
+                    "The item is  deleted",
+                    Toast.LENGTH_SHORT
+                ).show()
+                        dbReference.child(studentInfo.id?:"").removeValue()
+            }
+        }
+        alertDialog.show()
+    }
+
     fun dialog(position: Int = -1){
         var dialogBinding = CustomDialogLayoutBinding.inflate(layoutInflater)
         var dialog = Dialog(mainActivity).apply {
@@ -103,6 +174,11 @@ class StudentFragment : Fragment(),StudentInterface {
                 dialogBinding.etDepartment.setText(arrayList[position].department)
             }
             dialogBinding.btnAdd.setOnClickListener {
+                val studentInfo = StudentInfo("",
+                    dialogBinding.etName.text.toString(),
+                    dialogBinding.etDepartment.text.toString(),
+                    dialogBinding.etRollNo.text.toString().toInt())
+
                 if (dialogBinding.etName.text.toString().trim().isNullOrEmpty()){
                     dialogBinding.etName.error = "Enter Name"
                 }else  if (dialogBinding.etRollNo.text.toString().trim().isNullOrEmpty()){
@@ -111,20 +187,38 @@ class StudentFragment : Fragment(),StudentInterface {
                     dialogBinding.etDepartment.error = "Enter Department"
                 }else{
                     if (position > -1){
-                        arrayList[position] = StudentInfo(
+//                        arrayList[position] = StudentInfo(
+//                            "",
+//                            dialogBinding.etName.text.toString(),
+//                            dialogBinding.etDepartment.text.toString(),
+//                            dialogBinding.etRollNo.text.toString().toInt(),
+//                        )
+                        val key = arrayList[position].id
+                        val data = StudentInfo(
+                            "",
                             dialogBinding.etName.text.toString(),
                             dialogBinding.etDepartment.text.toString(),
-                            dialogBinding.etRollNo.text.toString().toInt(),
+                            dialogBinding.etRollNo.text.toString().toInt()
                         )
+                        val update = hashMapOf<String,Any>(
+                            "$key" to data
+                        )
+                        dbReference.updateChildren(update)
                     }else{
                         Log.e(TAG, "dialog: fabbutton", )
-                        arrayList.add(StudentInfo(
-                            dialogBinding.etName.text.toString(),
-                            dialogBinding.etDepartment.text.toString(),
-                            dialogBinding.etRollNo.text.toString().toString().toInt())
-                        )
+//                        arrayList.add(StudentInfo(
+//                            null,
+//                            dialogBinding.etName.text.toString(),
+//                            dialogBinding.etDepartment.text.toString(),
+//                            dialogBinding.etRollNo.text.toString().toString().toInt())
+//                        )
+                        dbReference.push().setValue(studentInfo)
+                            .addOnCompleteListener {
+                                Toast.makeText(mainActivity, "Menu add", Toast.LENGTH_SHORT).show()
+                            }.addOnFailureListener {
+                                Toast.makeText(mainActivity, "Failed", Toast.LENGTH_SHORT).show()
+                            }
                     }
-                    studentAdapter.notifyDataSetChanged()
                     dismiss()
                 }
             }
@@ -146,8 +240,7 @@ class StudentFragment : Fragment(),StudentInterface {
                             "The item is  deleted",
                             Toast.LENGTH_SHORT
                         ).show()
-                        arrayList.removeAt(position)
-                        studentAdapter.notifyDataSetChanged()
+//                        dbReference.child(studentInfo.id?:").removeValue()
                         dismiss()
                     }
                 }
