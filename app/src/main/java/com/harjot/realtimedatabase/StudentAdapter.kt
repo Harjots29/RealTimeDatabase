@@ -15,7 +15,7 @@ class StudentAdapter(var arrayList:ArrayList<StudentInfo>,var studentInterface: 
         var rollno = view.findViewById<TextView>(R.id.tvRollNo)
         var department = view.findViewById<TextView>(R.id.tvDepartment)
         var lv = view.findViewById<LinearLayout>(R.id.lv)
-        var delete = view.findViewById<Button>(R.id.btnDelete)
+        var next = view.findViewById<Button>(R.id.btnNext)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
@@ -34,8 +34,8 @@ class StudentAdapter(var arrayList:ArrayList<StudentInfo>,var studentInterface: 
         holder.lv.setOnClickListener {
             studentInterface.listClick(position)
         }
-        holder.delete.setOnClickListener {
-            studentInterface.onDeleteClick(arrayList[position],position)
+        holder.next.setOnClickListener {
+            studentInterface.onNextClick(arrayList[position],position)
         }
     }
 }

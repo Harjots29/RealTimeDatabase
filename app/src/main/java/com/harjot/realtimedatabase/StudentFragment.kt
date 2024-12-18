@@ -11,6 +11,9 @@ import android.view.ViewGroup
 import android.view.WindowManager
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
+import androidx.core.os.bundleOf
+import androidx.navigation.NavController
+import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.google.firebase.database.ChildEventListener
 import com.google.firebase.database.DataSnapshot
@@ -33,6 +36,7 @@ private const val ARG_PARAM2 = "param2"
 class StudentFragment : Fragment(),StudentInterface {
     lateinit var binding: FragmentStudentBinding
     lateinit var mainActivity: MainActivity
+    lateinit var navController: NavController
     var dbReference: DatabaseReference = FirebaseDatabase.getInstance().reference  //database declaration and initialization
     var arrayList = ArrayList<StudentInfo>()
     var studentAdapter = StudentAdapter(arrayList,this)
@@ -93,6 +97,7 @@ class StudentFragment : Fragment(),StudentInterface {
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
+        navController = findNavController()
         binding = FragmentStudentBinding.inflate(layoutInflater)
         // Inflate the layout for this fragment
         return binding.root
@@ -131,28 +136,11 @@ class StudentFragment : Fragment(),StudentInterface {
         dialog(position)
     }
 
-    override fun onDeleteClick(studentInfo: StudentInfo, position: Int) {
-        var alertDialog = AlertDialog.Builder(mainActivity)
-        alertDialog.setTitle("Delete Item")
-        alertDialog.setMessage("Do you want to delete the item?")
-        alertDialog.setCancelable(false)
-        alertDialog.setNegativeButton("No") { _, _ ->
-            alertDialog.setCancelable(true)
-        }
-        alertDialog.setPositiveButton("Yes") { _, _ ->
-            if (arrayList.size == 0){
-                Toast.makeText(mainActivity, "List Is Empty", Toast.LENGTH_SHORT).show()
-            }
-            else {
-                Toast.makeText(
-                    mainActivity,
-                    "The item is  deleted",
-                    Toast.LENGTH_SHORT
-                ).show()
-                        dbReference.child(studentInfo.id?:"").removeValue()
-            }
-        }
-        alertDialog.show()
+    override fun onNextClick(studentInfo: StudentInfo, position: Int) {
+        navController.navigate(R.id.studentDetailsFragment,
+            bundleOf("name" to studentInfo.name,
+            "department" to studentInfo.department,
+                "rollNo" to studentInfo.rollNo))
     }
 
     fun dialog(position: Int = -1){
