@@ -1,6 +1,7 @@
 package com.harjot.realtimedatabase
 
 interface StudentInterface {
-    fun listClick(position:Int)
-    fun onNextClick(studentInfo: StudentInfo,position: Int)
+    fun listClick(studentInfo: StudentInfo,position:Int)
+    fun onUpdateClick(position: Int)
+    fun onDeleteClick(studentInfo: StudentInfo,position: Int)
 }

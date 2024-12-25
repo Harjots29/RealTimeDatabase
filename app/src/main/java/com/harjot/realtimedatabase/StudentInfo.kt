@@ -5,6 +5,7 @@ data class StudentInfo(
     var name:String?="",
     var department:String?="",
     var rollNo:Int?=0,
-){
+    var image: String? = null,
+    ){
 
 }
