@@ -45,6 +45,7 @@ import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.storage.UploadStatus
 import io.github.jan.supabase.storage.storage
 import io.github.jan.supabase.storage.uploadAsFlow
+import io.ktor.http.Url
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -71,6 +72,7 @@ class StudentFragment : Fragment(),StudentInterface {
     var studentAdapter = StudentAdapter(arrayList,this,this)
     lateinit var supabaseClient: SupabaseClient
     var imgUri: Uri? = null
+    var imagegUrl: String?=null
     lateinit var dialogBinding : CustomDialogLayoutBinding
     // TODO: Rename and change types of parameters
     private var param1: String? = null
@@ -240,11 +242,12 @@ class StudentFragment : Fragment(),StudentInterface {
                 }else  if (dialogBinding.etDepartment.text.toString().trim().isNullOrEmpty()){
                     dialogBinding.etDepartment.error = "Enter Department"
                 }else{
+                    uploadImageToSupabase(imgUri!!)
                     val studentInfo = StudentInfo("",
                         dialogBinding.etName.text.toString(),
                         dialogBinding.etDepartment.text.toString(),
                         dialogBinding.etRollNo.text.toString().toInt(),
-                        imgUri.toString())
+                        imagegUrl.toString())
                     if (position > -1){
 //                        arrayList[position] = StudentInfo(
 //                            "",
@@ -258,7 +261,7 @@ class StudentFragment : Fragment(),StudentInterface {
                             dialogBinding.etName.text.toString(),
                             dialogBinding.etDepartment.text.toString(),
                             dialogBinding.etRollNo.text.toString().toInt(),
-                            imgUri.toString()
+                            imagegUrl.toString()
                         )
                         val update = hashMapOf<String,Any>(
                             "$key" to data
@@ -273,7 +276,7 @@ class StudentFragment : Fragment(),StudentInterface {
 //                            dialogBinding.etRollNo.text.toString().toString().toInt())
 //                        )
 //                        uploadImageToSupabase(dialogBinding.ivImage.toString().toUri())
-                        uploadImageToSupabase(imgUri!!)
+
                         dbReference.push().setValue(studentInfo)
                             .addOnCompleteListener {
                                 Toast.makeText(mainActivity, "Menu add", Toast.LENGTH_SHORT).show()
@@ -375,7 +378,6 @@ class StudentFragment : Fragment(),StudentInterface {
                                 Toast.makeText(mainActivity, "Upload Success", Toast.LENGTH_SHORT).show()
                                 val imgUrl = bucket.publicUrl(filename)
                                 val img = dialogBinding.ivImage
-
                                 Glide.with(mainActivity)
                                     .load(imgUrl)
                                     .placeholder(R.drawable.ic_img)
