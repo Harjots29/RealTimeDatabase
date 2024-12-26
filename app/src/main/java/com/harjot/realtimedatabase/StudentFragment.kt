@@ -72,7 +72,7 @@ class StudentFragment : Fragment(),StudentInterface {
     var studentAdapter = StudentAdapter(arrayList,this,this)
     lateinit var supabaseClient: SupabaseClient
     var imgUri: Uri? = null
-    var imagegUrl: String?=null
+//    var imagegUrl: String?=null
     lateinit var dialogBinding : CustomDialogLayoutBinding
     // TODO: Rename and change types of parameters
     private var param1: String? = null
@@ -247,7 +247,7 @@ class StudentFragment : Fragment(),StudentInterface {
                         dialogBinding.etName.text.toString(),
                         dialogBinding.etDepartment.text.toString(),
                         dialogBinding.etRollNo.text.toString().toInt(),
-                        imagegUrl.toString())
+                        imgUri.toString())
                     if (position > -1){
 //                        arrayList[position] = StudentInfo(
 //                            "",
@@ -261,7 +261,7 @@ class StudentFragment : Fragment(),StudentInterface {
                             dialogBinding.etName.text.toString(),
                             dialogBinding.etDepartment.text.toString(),
                             dialogBinding.etRollNo.text.toString().toInt(),
-                            imagegUrl.toString()
+                            imgUri.toString()
                         )
                         val update = hashMapOf<String,Any>(
                             "$key" to data
