@@ -108,6 +108,7 @@ class StudentFragment : Fragment(),StudentInterface {
                         }
                     }
                     studentAdapter.notifyDataSetChanged()
+                    mainActivity.binding.llLoader.visibility = View.GONE
                 }
             }
             override fun onChildRemoved(snapshot: DataSnapshot) {
@@ -370,6 +371,7 @@ class StudentFragment : Fragment(),StudentInterface {
     }
     fun addUpdate(position: Int){
         if (position > -1){
+            mainActivity.binding.llLoader.visibility = View.VISIBLE
 //                        arrayList[position] = StudentInfo(
 //                            "",
 //                            dialogBinding.etName.text.toString(),
@@ -382,6 +384,7 @@ class StudentFragment : Fragment(),StudentInterface {
                 dialogBinding.etName.text.toString(),
                 dialogBinding.etDepartment.text.toString(),
                 dialogBinding.etRollNo.text.toString().toInt(),
+                imagegUrl
             )
             val update = hashMapOf<String,Any>(
                 "$key" to data)
