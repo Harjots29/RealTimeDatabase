@@ -29,6 +29,7 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
 import androidx.core.os.bundleOf
+import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavController
 import androidx.navigation.fragment.findNavController
@@ -47,8 +48,10 @@ import io.github.jan.supabase.storage.storage
 import io.github.jan.supabase.storage.uploadAsFlow
 import io.ktor.http.Url
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlin.concurrent.thread
 
 // TODO: Rename parameter arguments, choose names that match
 // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
@@ -72,7 +75,7 @@ class StudentFragment : Fragment(),StudentInterface {
     var studentAdapter = StudentAdapter(arrayList,this,this)
     lateinit var supabaseClient: SupabaseClient
     var imgUri: Uri? = null
-//    var imagegUrl: String?=null
+    var imagegUrl:  String?=null
     lateinit var dialogBinding : CustomDialogLayoutBinding
     // TODO: Rename and change types of parameters
     private var param1: String? = null
@@ -242,49 +245,12 @@ class StudentFragment : Fragment(),StudentInterface {
                 }else  if (dialogBinding.etDepartment.text.toString().trim().isNullOrEmpty()){
                     dialogBinding.etDepartment.error = "Enter Department"
                 }else{
-                    uploadImageToSupabase(imgUri!!)
-                    val studentInfo = StudentInfo("",
-                        dialogBinding.etName.text.toString(),
-                        dialogBinding.etDepartment.text.toString(),
-                        dialogBinding.etRollNo.text.toString().toInt(),
-                        imgUri.toString())
-                    if (position > -1){
-//                        arrayList[position] = StudentInfo(
-//                            "",
-//                            dialogBinding.etName.text.toString(),
-//                            dialogBinding.etDepartment.text.toString(),
-//                            dialogBinding.etRollNo.text.toString().toInt(),
-//                        )
-                        val key = arrayList[position].id
-                        val data = StudentInfo(
-                            "",
-                            dialogBinding.etName.text.toString(),
-                            dialogBinding.etDepartment.text.toString(),
-                            dialogBinding.etRollNo.text.toString().toInt(),
-                            imgUri.toString()
-                        )
-                        val update = hashMapOf<String,Any>(
-                            "$key" to data
-                        )
-                        dbReference.updateChildren(update)
-                    }else{
-                        Log.e(TAG, "dialog: fabbutton", )
-//                        arrayList.add(StudentInfo(
-//                            null,
-//                            dialogBinding.etName.text.toString(),
-//                            dialogBinding.etDepartment.text.toString(),
-//                            dialogBinding.etRollNo.text.toString().toString().toInt())
-//                        )
-//                        uploadImageToSupabase(dialogBinding.ivImage.toString().toUri())
-
-                        dbReference.push().setValue(studentInfo)
-                            .addOnCompleteListener {
-                                Toast.makeText(mainActivity, "Menu add", Toast.LENGTH_SHORT).show()
-                            }.addOnFailureListener {
-                                Toast.makeText(mainActivity, "Failed", Toast.LENGTH_SHORT).show()
-                            }
-                    }
+                    mainActivity.binding.llLoader.visibility = View.VISIBLE
+                    uploadImageToSupabase(imgUri!!,position)
+//                    }
                     dismiss()
+//                    Toast.makeText(mainActivity, "${imagegUrl}", Toast.LENGTH_SHORT).show()
+
                 }
             }
             show()
@@ -357,7 +323,7 @@ class StudentFragment : Fragment(),StudentInterface {
             }
         }
     }
-    private fun uploadImageToSupabase(uri: Uri) {
+    private fun uploadImageToSupabase(uri: Uri,position: Int) {
         Toast.makeText(mainActivity, "inUploadImage", Toast.LENGTH_SHORT).show()
         val byteArray = uriToByteArray(mainActivity,uri)
         val filename = "images/${System.currentTimeMillis()}.jpg"
@@ -374,22 +340,25 @@ class StudentFragment : Fragment(),StudentInterface {
                                 Toast.makeText(mainActivity, "progress", Toast.LENGTH_SHORT).show()
                             }
                             is UploadStatus.Success->{
+                                mainActivity.binding.llLoader.visibility = View.GONE
                                 println("InSuccess")
                                 Toast.makeText(mainActivity, "Upload Success", Toast.LENGTH_SHORT).show()
                                 val imgUrl = bucket.publicUrl(filename)
                                 val img = dialogBinding.ivImage
+                                imagegUrl = imgUrl
+                                addUpdate(position)
                                 Glide.with(mainActivity)
                                     .load(imgUrl)
                                     .placeholder(R.drawable.ic_img)
                                     .into(img)
 
-                                Toast.makeText(mainActivity, "upload Success", Toast.LENGTH_SHORT).show()
                             }
                         }
                     }
                 }
             }catch (e: Exception){
                 val TAG = "Upload"
+//                mainActivity.binding.llLoader.visibility = View.GONE
                 Log.e(TAG, "uploadImageToSupabase: ${e.message}", )
 //                Toast.makeText(this@MainActivity, "${e.message}", Toast.LENGTH_SHORT).show()
             }
@@ -398,5 +367,47 @@ class StudentFragment : Fragment(),StudentInterface {
     private fun uriToByteArray(context: Context, uri: Uri): ByteArray {
         val inputStream = context.contentResolver.openInputStream(uri)
         return inputStream?.readBytes() ?: ByteArray(0)
+    }
+    fun addUpdate(position: Int){
+        if (position > -1){
+//                        arrayList[position] = StudentInfo(
+//                            "",
+//                            dialogBinding.etName.text.toString(),
+//                            dialogBinding.etDepartment.text.toString(),
+//                            dialogBinding.etRollNo.text.toString().toInt(),
+//                        )
+            val key = arrayList[position].id
+            val data = StudentInfo(
+                "",
+                dialogBinding.etName.text.toString(),
+                dialogBinding.etDepartment.text.toString(),
+                dialogBinding.etRollNo.text.toString().toInt(),
+            )
+            val update = hashMapOf<String,Any>(
+                "$key" to data)
+
+            dbReference.updateChildren(update)
+        }else{
+            mainActivity.binding.llLoader.visibility = View.VISIBLE
+            val studentInfo = StudentInfo("",
+                dialogBinding.etName.text.toString(),
+                dialogBinding.etDepartment.text.toString(),
+                dialogBinding.etRollNo.text.toString().toInt(),
+                imagegUrl)
+//                        arrayList.add(StudentInfo(
+//                            null,
+//                            dialogBinding.etName.text.toString(),
+//                            dialogBinding.etDepartment.text.toString(),
+//                            dialogBinding.etRollNo.text.toString().toString().toInt())
+//                        )
+            dbReference.push().setValue(studentInfo)
+                .addOnCompleteListener {
+                    mainActivity.binding.llLoader.visibility = View.GONE
+                    Toast.makeText(mainActivity, "Menu add", Toast.LENGTH_SHORT).show()
+                }.addOnFailureListener {
+                    mainActivity.binding.llLoader.visibility = View.GONE
+                    Toast.makeText(mainActivity, "Failed", Toast.LENGTH_SHORT).show()
+                }
+        }
     }
 }
